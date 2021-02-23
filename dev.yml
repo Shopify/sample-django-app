@@ -1,0 +1,9 @@
+name: sample-django-app
+
+type: python
+
+up:
+  - python: 3.9.1
+  - pip:
+    - requirements.txt
+    # - path/to/other.txt
