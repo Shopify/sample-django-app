@@ -1,6 +1,0 @@
-{
-  "name": "@apollo/client/errors",
-  "main": "errors.cjs.js",
-  "module": "index.js",
-  "types": "index.d.ts"
-}
