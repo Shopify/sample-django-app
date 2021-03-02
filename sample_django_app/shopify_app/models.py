@@ -9,4 +9,9 @@ class Shop(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return "id: %d, shop: %s, token: %s, access_scopes: %s" % (self.pk, self.shopify_domain, self.shopify_token, self.access_scopes)
+        return "id: {id}, shop: {shop}, token: {token}, access_scopes: {access_scopes}".format(
+            id=self.pk,
+            shop=self.shopify_domain,
+            token=self.shopify_token,
+            access_scopes=self.access_scopes,
+        )
