@@ -16,7 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from shopify_app.views import LoginView, callback
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('shopify_app/', include('shopify_app.urls')),
+    path('login/', LoginView.as_view(), name='login'),
+    path('auth/shopify/callback', callback, name='callback')
 ]

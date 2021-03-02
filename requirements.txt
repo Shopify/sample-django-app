@@ -1,3 +1,5 @@
 Django
 djangorestframework
 django-cors-headers
+ShopifyAPI
+python-dotenv

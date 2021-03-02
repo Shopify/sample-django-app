@@ -2,6 +2,7 @@
 # $GIT_DIR/info/exclude or the core.excludesFile configuration variable as
 # described in https://git-scm.com/docs/gitignore
 
+.env
 *.egg-info
 *.pot
 *.py[co]
@@ -18,3 +19,4 @@ tests/.coverage
 build/
 tests/report/
 .DS_Store
+.vscode/
