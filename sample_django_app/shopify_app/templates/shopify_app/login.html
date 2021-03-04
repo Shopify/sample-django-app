@@ -2,40 +2,55 @@
 <html lang="en">
 
 <head>
-    <title>Shopify App — Installation</title>
+  <title>Shopify App — Installation</title>
 
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@6.1.0/dist/styles.css" />
+  {% load static %}
+
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@6.1.0/dist/styles.css" />
+  <link rel="stylesheet" type="text/css" href="{% static 'shopify_app/style.css' %}">
 </head>
 
 <body>
-    <h1>Install</h1>
+  <main class="container" role="main">
+    <div class="Polaris-Page Polaris-Page--InstallApp">
+      <div class="Polaris-Page__Content">
+        <div class="Polaris-Layout">
+          <div class="Polaris-Layout__Section">
+            <div class="Polaris-Card">
+              <div class="Polaris-Card__Header">
+                <h1 class="Polaris-Heading">
+                  {{ app_name|default:"Sample App - Installation" }}
+                </h1>
+              </div>
+              <div class="Polaris-Card__Section">
+                <form action="{% url 'login' %}" method="post">{% csrf_token %}
+                  <div class="Polaris-Label">
+                    <label class="Polaris-Label__Text" for='shop'>Enter your shop domain to log in
+                      or install this app.</strong> </label>
+                  </div>
 
-    <p>Install this app in a shop to get access to its private admin data.</p>
-
-    <p style="padding-bottom: 1em"><span class="hint">Don&rsquo;t have a shop to install your app in handy? <a
-                href="https://app.shopify.com/services/partners/api_clients/test_shops">Create a test shop.</a></span>
-    </p>
-
-    <form action="{% url 'login' %}" method="post">{% csrf_token %}
-        <label for='shop'><strong>The URL of the Shop</strong>
-            <span class="hint">(or just the subdomain if it&rsquo;s at myshopify.com)</span>
-        </label>
-        <p>
-            <input id="shop" name="shop" size="45" type="text" />
-            <input name="commit" type="submit" value="Install app" />
-        </p>
-    </form>
-
-    {% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
-            {% endfor %}
-    </ul>
-    {% endif %}
-
+                  <div class="Polaris-TextField{% if messages %} Polaris-TextField--InlineError{% endif %}">
+                    <input id="shop" name="shop" type="text" autofocus="autofocus" placeholder="example.myshopify.com"
+                      class="Polaris-TextField__Input">
+                  </div>
+                  {% if messages %}
+                  {% for message in messages %}
+                  <div class="Polaris-InlineError">{{ message }}</div>
+                  {% endfor %}
+                  {% endif %}
+                  <button type="submit" class="Polaris-Button Polaris-Button--primary Polaris-Button--sizeLarge">
+                    <span class="Polaris-Button__Content"><span>Install app</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
 </body>
 
 </html>

@@ -17,7 +17,7 @@ class LoginView(View):
         if request.GET.get("shop"):
             return authenticate(request)
 
-        return render(request, "shopify_app/login.html")
+        return render(request, "shopify_app/login.html", {'app_name': 'Sample Django app'})
 
     def post(self, request):
         return authenticate(request)
