@@ -57,9 +57,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Needed to embed the app
-X_FRAME_OPTIONS = 'ALLOW'
-
 ROOT_URLCONF = 'sample_django_app.urls'
 
 TEMPLATES = [
