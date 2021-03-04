@@ -1,0 +1,23 @@
+<!doctype html>
+
+<head>
+    <title>Sample Django App</title>
+    <script src="https://unpkg.com/@shopify/app-bridge"></script>
+    <script src="https://unpkg.com/@shopify/app-bridge-utils"></script>
+    <script>
+        var AppBridge = window['app-bridge'];
+        var AppBridgeUtils = window['app-bridge-utils'];
+        var actions = AppBridge.actions;
+        var createApp = AppBridge.default;
+        var TitleBar = actions.TitleBar;
+        var app = createApp({
+            apiKey: '{{ api_key }}',
+            shopOrigin: '{{ shop_origin }}'
+        });
+        var myTitleBar = TitleBar.create(app, { title: 'Hello' });
+    </script>
+</head>
+
+<body>
+    <h1>Hello, World!</h1>
+</body>

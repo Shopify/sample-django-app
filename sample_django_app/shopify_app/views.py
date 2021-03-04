@@ -88,7 +88,10 @@ def callback(request):
 
     messages.info(request, "Logged in to shopify store.")
     request.session.pop("return_to", None)
-    return redirect(request.session.get("return_to", reverse("root_path")))
+    shop_query_param = "?shop={shop_domain}".format(shop_domain=shop_url)
+    return redirect(
+        request.session.get("return_to", reverse("root_path")) + shop_query_param
+    )
 
 
 def is_valid_state(request, state):

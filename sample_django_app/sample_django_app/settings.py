@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'shopify_app.apps.ShopifyAppConfig',
+    'home',
 ]
 
 MIDDLEWARE = [
