@@ -4,7 +4,6 @@ from django.views import View
 from django.apps import apps
 from django.views.decorators.clickjacking import xframe_options_exempt
 
-
 class HomeView(View):
   @xframe_options_exempt
   def get(self, request, *args, **kwargs):
