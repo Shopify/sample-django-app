@@ -6,7 +6,7 @@ from django.views import View
 from django.apps import apps
 from .models import Shop
 
-import hmac
+import hmac as hmac_utils
 import base64
 import hashlib
 import binascii
@@ -29,8 +29,6 @@ def _new_session(shop_url):
 
     shopify.Session.setup(api_key=shopify_api_key, secret=shopify_api_secret)
     return shopify.Session(shop_url, shopify_api_version)
-
-
 
 
 def store_state_param(request, state):
@@ -104,47 +102,56 @@ class LoginView(View):
 def callback(request):
     params = request.GET.dict()
 
-    if not is_valid_state(request, params["state"]):
-        messages.error(
-            request, "Anti-forgery state token does not match the initial request."
-        )
-        return redirect(reverse("login"))
-    else:
-        request.session.pop("shopify_oauth_state_param", None)
-
-    if not is_hmac_valid(params):
-        messages.error(request, "Could not verify a secure login")
-        return redirect(reverse("login"))
-
     try:
-        shop_url = params["shop"]
-        session = _new_session(shop_url)
-        shop_record = Shop.objects.get_or_create(shopify_domain=shop_url)[0]
-        shop_record.shopify_token = session.request_token(request.GET)
-        # TODO: store access scopes
-        shop_record.save()
-    except Exception as e:
-        messages.error(request, "Could not log in to Shopify store.")
+        validate_state_param(request, params.get("state"))
+        validate_hmac_param(params)
+        access_token = exchange_code_for_access_token(
+            request, params.get("shop"))
+        store_access_token_and_shop_record(access_token, params.get("shop"))
+    except ValueError as exception:
+        messages.error(request, str(exception))
         return redirect(reverse("login"))
 
-    messages.info(request, "Logged in to shopify store.")
-    request.session.pop("return_to", None)
-    shop_query_param = "?shop={shop_domain}".format(shop_domain=shop_url)
-    return redirect(
-        request.session.get("return_to", reverse(
-            "root_path")) + shop_query_param
-    )
-
-def is_valid_state(request, state):
-    return request.session["shopify_oauth_state_param"] == state
+    redirect_uri = build_callback_redirect_uri(request, params)
+    return redirect(redirect_uri)
 
 
-def is_hmac_valid(params):
+def validate_state_param(request, state):
+    if request.session.get("shopify_oauth_state_param") != state:
+        raise ValueError('Anti-forgery state parameter does not match')
+
+    request.session.pop("shopify_oauth_state_param", None)
+
+
+def validate_hmac_param(params):
+    hmac = params.pop("hmac")
+    constructed_hmac = build_hmac(params)
+
+    if not hmac_utils.compare_digest(constructed_hmac.hexdigest(), hmac):
+        raise ValueError("Anti-forgery hmac parameter does not match")
+
+
+def build_hmac(params):
     api_secret = apps.get_app_config("shopify_app").SHOPIFY_API_SECRET
-    myhmac = params.pop("hmac")
-    line = "&".join(["%s=%s" % (key, value)
-                     for key, value in sorted(params.items())])
+    _params = "&".join(["%s=%s" % (k, v) for k, v in sorted(params.items())])
 
-    h = hmac.new(api_secret.encode("utf-8"),
-                 line.encode("utf-8"), hashlib.sha256)
-    return hmac.compare_digest(h.hexdigest(), myhmac)
+    return hmac_utils.new(api_secret.encode("utf-8"), _params.encode("utf-8"), hashlib.sha256)
+
+
+def exchange_code_for_access_token(request, shop):
+    session = _new_session(shop)
+    return session.request_token(request.GET)
+
+
+def store_access_token_and_shop_record(access_token, shop):
+    shop_record = Shop.objects.get_or_create(shopify_domain=shop)[0]
+    shop_record.shopify_token = access_token
+
+    # TODO: store access scopes
+
+    shop_record.save()
+
+
+def build_callback_redirect_uri(request, params):
+    base = request.session.get("return_to", reverse("root_path"))
+    return "{base}?shop={shop}".format(base=base, shop=params.get("shop"))
