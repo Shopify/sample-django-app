@@ -21,58 +21,33 @@ HOSTNAME_PATTERN = r'[a-z0-9][a-z0-9-]*[a-z0-9]'
 SHOP_DOMAIN_RE = re.compile(fr'^{HOSTNAME_PATTERN}\.myshopify\.com$')
 
 
-def _new_session(shop_url):
-    shopify_api_version = apps.get_app_config(
-        "shopify_app").SHOPIFY_API_VERSION
-    shopify_api_key = apps.get_app_config("shopify_app").SHOPIFY_API_KEY
-    shopify_api_secret = apps.get_app_config("shopify_app").SHOPIFY_API_SECRET
+class LoginView(View):
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("shop"):
+            return authenticate(request)
+        return render(request, "shopify_app/login.html", {'app_name': 'Sample Django app'})
 
-    shopify.Session.setup(api_key=shopify_api_key, secret=shopify_api_secret)
-    return shopify.Session(shop_url, shopify_api_version)
-
-
-def store_state_param(request, state):
-    request.session["shopify_oauth_state_param"] = state
+    def post(self, request):
+        return authenticate(request)
 
 
-def build_state_param():
-    return binascii.b2a_hex(os.urandom(15)).decode("utf-8")
+def callback(request):
+    params = request.GET.dict()
+    shop = params.get("shop")
 
+    try:
+        validate_state_param(request, params.get("state"))
+        validate_hmac_param(params)
+        access_token = exchange_code_for_access_token(request, shop)
+        store_access_token_and_shop_record(access_token, shop)
+    except ValueError as exception:
+        messages.error(request, str(exception))
+        return redirect(reverse("login"))
 
-def build_redirect_uri():
-    app_url = apps.get_app_config("shopify_app").APP_URL
-    callback_path = reverse("callback")
-    return "https://{app_url}{callback_path}".format(app_url=app_url, callback_path=callback_path)
+    redirect_uri = build_callback_redirect_uri(request, params)
+    return redirect(redirect_uri)
 
-
-def get_configured_scopes():
-    return apps.get_app_config("shopify_app").SHOPIFY_API_SCOPES.split(",")
-
-
-def build_auth_params(request):
-    scopes = get_configured_scopes()
-    redirect_uri = build_redirect_uri()
-    state = build_state_param()
-
-    return scopes, redirect_uri, state
-
-
-def validate_shop_param(shop):
-    if not SHOP_DOMAIN_RE.match(shop):
-        raise ValueError("Shop must match 'example.myshopify.com'")
-
-
-def get_shop_param(request):
-    shop = request.GET.get("shop", request.POST.get("shop")).strip()
-    if not shop:
-        raise ValueError("Shop parameter is required")
-    return shop
-
-
-def get_sanitized_shop_param(request):
-    shop = get_shop_param(request)
-    validate_shop_param(shop)
-    return shop
+# Login helper methods
 
 
 def authenticate(request):
@@ -89,31 +64,61 @@ def authenticate(request):
         return redirect(reverse("login"))
 
 
-class LoginView(View):
-    def get(self, request, *args, **kwargs):
-        if request.GET.get("shop"):
-            return authenticate(request)
-        return render(request, "shopify_app/login.html", {'app_name': 'Sample Django app'})
-
-    def post(self, request):
-        return authenticate(request)
+def get_sanitized_shop_param(request):
+    shop = get_shop_param(request)
+    validate_shop_param(shop)
+    return shop
 
 
-def callback(request):
-    params = request.GET.dict()
+def get_shop_param(request):
+    shop = request.GET.get("shop", request.POST.get("shop")).strip()
+    if not shop:
+        raise ValueError("Shop parameter is required")
+    return shop
 
-    try:
-        validate_state_param(request, params.get("state"))
-        validate_hmac_param(params)
-        access_token = exchange_code_for_access_token(
-            request, params.get("shop"))
-        store_access_token_and_shop_record(access_token, params.get("shop"))
-    except ValueError as exception:
-        messages.error(request, str(exception))
-        return redirect(reverse("login"))
 
-    redirect_uri = build_callback_redirect_uri(request, params)
-    return redirect(redirect_uri)
+def validate_shop_param(shop):
+    if not SHOP_DOMAIN_RE.match(shop):
+        raise ValueError("Shop must match 'example.myshopify.com'")
+
+
+def build_auth_params(request):
+    scopes = get_configured_scopes()
+    redirect_uri = build_redirect_uri()
+    state = build_state_param()
+
+    return scopes, redirect_uri, state
+
+
+def get_configured_scopes():
+    return apps.get_app_config("shopify_app").SHOPIFY_API_SCOPES.split(",")
+
+
+def build_redirect_uri():
+    app_url = apps.get_app_config("shopify_app").APP_URL
+    callback_path = reverse("callback")
+    return "https://{app_url}{callback_path}".format(app_url=app_url, callback_path=callback_path)
+
+
+def build_state_param():
+    return binascii.b2a_hex(os.urandom(15)).decode("utf-8")
+
+
+def store_state_param(request, state):
+    request.session["shopify_oauth_state_param"] = state
+
+
+def _new_session(shop_url):
+    shopify_api_version = apps.get_app_config(
+        "shopify_app").SHOPIFY_API_VERSION
+    shopify_api_key = apps.get_app_config("shopify_app").SHOPIFY_API_KEY
+    shopify_api_secret = apps.get_app_config("shopify_app").SHOPIFY_API_SECRET
+
+    shopify.Session.setup(api_key=shopify_api_key, secret=shopify_api_secret)
+    return shopify.Session(shop_url, shopify_api_version)
+
+
+# Callback helper methods
 
 
 def validate_state_param(request, state):
@@ -125,9 +130,9 @@ def validate_state_param(request, state):
 
 def validate_hmac_param(params):
     hmac = params.pop("hmac")
-    constructed_hmac = build_hmac(params)
+    reconstructed_hmac = build_hmac(params)
 
-    if not hmac_utils.compare_digest(constructed_hmac.hexdigest(), hmac):
+    if not hmac_utils.compare_digest(reconstructed_hmac.hexdigest(), hmac):
         raise ValueError("Anti-forgery hmac parameter does not match")
 
 
