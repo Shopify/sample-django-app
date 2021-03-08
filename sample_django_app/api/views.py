@@ -1,9 +1,12 @@
 from django.http import JsonResponse, HttpResponse
 from django.apps import apps
 
+from shopify_app.models import Shop
+
 import jwt
 import re
 import urllib
+import shopify
 
 # TODO: Extract into shopify_app app
 # TODO: Extract into a utils file
@@ -60,18 +63,28 @@ def with_session_token(func):
         request = args[0]
         try:
             session_token = get_session_token(request)
-            # TODO: Build session
-            return func(*args, **kwargs)
-        except Exception as e:
-            print(e)
+            with shopify_session(session_token):
+                return func(*args, **kwargs)
+        except ValueError as e:
             return HttpResponse(status=401)
 
     return wrapper
 
+def shopify_session(session_token):
+    shopify_domain = session_token.get("dest").removeprefix("https://")
+    api_version = apps.get_app_config("shopify_app").SHOPIFY_API_VERSION
+    access_token = Shop.objects.get(shopify_domain = shopify_domain).shopify_token
+
+    return shopify.Session.temp(shopify_domain, api_version, access_token)
+
 @with_session_token
 def products(request):
-    return JsonResponse({'id': 1, 'name': 'test-product'})
+    products = shopify.Product.find()
+
+    return JsonResponse({'products': [p.to_dict() for p in products]})
 
 @with_session_token
 def orders(request):
-    return JsonResponse({'id': 1, 'name': 'test-order'})
+    orders = shopify.Order.find(status='any')
+
+    return JsonResponse({'orders': [o.to_dict() for o in orders]})
