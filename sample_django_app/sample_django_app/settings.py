@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'shopify_app.apps.ShopifyAppConfig',
     'home',
+    'api',
 ]
 
 MIDDLEWARE = [

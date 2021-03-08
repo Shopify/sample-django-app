@@ -22,6 +22,7 @@ from home.views import HomeView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', HomeView.as_view(), name='root_path'),
+    path('api/', include('api.urls')),
     path('login/', LoginView.as_view(), name='login'),
     path('auth/shopify/callback', callback, name='callback'),
 ]

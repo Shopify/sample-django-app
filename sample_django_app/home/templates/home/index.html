@@ -15,9 +15,39 @@
             shopOrigin: '{{ shop_origin }}'
         });
         var myTitleBar = TitleBar.create(app, { title: 'Hello' });
+        var shopifyAuthenticatedFetch = AppBridgeUtils.authenticatedFetch(app);
+        function getProducts(){
+          shopifyAuthenticatedFetch('/api/products').then(async(res) => {
+                var products = (await res.json())['products'];
+                var productListElement = window.document.querySelector('#product-list');
+
+                for(var i = 0, len = products.length;i<len;i++){
+                var newLi = document.createElement('li');
+                newLi.textContent = products[i]['title']
+                productListElement.appendChild(newLi);
+                }
+            });
+          }
+          function getOrders(){
+            shopifyAuthenticatedFetch('/api/orders').then(async(res) => {
+                var orders = (await res.json())['orders'];
+                var orderListElement = window.document.querySelector('#order-list');
+
+                for(var i = 0, len = orders.length;i<len;i++){
+                var newLi = document.createElement('li');
+                console.log(orders[i]['line_items'])
+                newLi.textContent = orders[i]['line_items'][0]['price']
+                orderListElement.appendChild(newLi);
+                }
+            });
+          }
     </script>
 </head>
 
 <body>
     <h1>Hello, World!</h1>
+    <button onclick="getProducts()">Products</button>
+    <ul id="product-list"></ul>
+    <button onclick="getOrders()">Orders</button>
+    <ul id="order-list"></ul>
 </body>
