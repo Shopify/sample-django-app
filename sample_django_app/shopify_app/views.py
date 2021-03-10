@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 from django.apps import apps
 from .models import Shop
 
@@ -13,6 +14,7 @@ import binascii
 import os
 import shopify
 import re
+import json
 
 from .models import Shop
 
@@ -40,12 +42,41 @@ def callback(request):
         validate_hmac_param(params)
         access_token = exchange_code_for_access_token(request, shop)
         store_access_token_and_shop_record(access_token, shop)
+        after_authenticate_jobs(shop, access_token)
     except ValueError as exception:
         messages.error(request, str(exception))
         return redirect(reverse("login"))
 
     redirect_uri = build_callback_redirect_uri(request, params)
     return redirect(redirect_uri)
+
+@csrf_exempt
+def uninstall(request):
+    uninstall_data = json.loads(request.body)
+    shop = uninstall_data.get("domain")
+    Shop.objects.filter(shopify_domain = shop).delete()
+    return HttpResponse(status = 204)
+
+
+# callback helper methods
+
+def after_authenticate_jobs(shop, access_token):
+    create_uninstall_webhook(shop, access_token)
+
+def create_uninstall_webhook(shop, access_token):
+    with shopify_session(shop, access_token):
+        app_url = apps.get_app_config("shopify_app").APP_URL
+        webhook = shopify.Webhook()
+        webhook.topic = "app/uninstalled"
+        webhook.address = "https://{host}/uninstall".format(host = app_url)
+        webhook.format = "json"
+        webhook.save()
+
+
+def shopify_session(shopify_domain, access_token):
+    api_version = apps.get_app_config("shopify_app").SHOPIFY_API_VERSION
+
+    return shopify.Session.temp(shopify_domain, api_version, access_token)
 
 # Login helper methods
 

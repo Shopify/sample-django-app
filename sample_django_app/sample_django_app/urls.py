@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from shopify_app.views import LoginView, callback
+from shopify_app.views import  callback, LoginView, uninstall
 from home.views import HomeView
 
 urlpatterns = [
@@ -25,4 +25,5 @@ urlpatterns = [
     path('api/', include('api.urls')),
     path('login/', LoginView.as_view(), name='login'),
     path('auth/shopify/callback', callback, name='callback'),
+    path('uninstall', uninstall, name='uninstall'),
 ]
