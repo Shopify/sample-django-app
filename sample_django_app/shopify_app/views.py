@@ -7,10 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.apps import apps
 from .models import Shop
 
-import base64
 import binascii
-import hashlib
-import hmac as hmac_utils
 import json
 import os
 import re
