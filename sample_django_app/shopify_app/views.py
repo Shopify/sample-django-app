@@ -7,27 +7,27 @@ from django.views.decorators.csrf import csrf_exempt
 from django.apps import apps
 from .models import Shop
 
-import hmac as hmac_utils
 import base64
-import hashlib
 import binascii
-import os
-import shopify
-import re
+import hashlib
+import hmac as hmac_utils
 import json
+import os
+import re
+import shopify
 
-from .models import Shop
-
-HOSTNAME_PATTERN = r'[a-z0-9][a-z0-9-]*[a-z0-9]'
+HOSTNAME_PATTERN = r"[a-z0-9][a-z0-9-]*[a-z0-9]"
 # Does not include https://
-SHOP_DOMAIN_RE = re.compile(fr'^{HOSTNAME_PATTERN}\.myshopify\.com$')
+SHOP_DOMAIN_RE = re.compile(fr"^{HOSTNAME_PATTERN}\.myshopify\.com$")
 
 
 class LoginView(View):
     def get(self, request, *args, **kwargs):
         if request.GET.get("shop"):
             return authenticate(request)
-        return render(request, "shopify_app/login.html", {'app_name': 'Sample Django app'})
+        return render(
+            request, "shopify_app/login.html", {"app_name": "Sample Django app"}
+        )
 
     def post(self, request):
         return authenticate(request)
@@ -38,8 +38,7 @@ def callback(request):
     shop = params.get("shop")
 
     try:
-        validate_state_param(request, params.get("state"))
-        validate_hmac_param(params)
+        validate_params(request, params)
         access_token = exchange_code_for_access_token(request, shop)
         store_access_token_and_shop_record(access_token, shop)
         after_authenticate_jobs(shop, access_token)
@@ -50,33 +49,14 @@ def callback(request):
     redirect_uri = build_callback_redirect_uri(request, params)
     return redirect(redirect_uri)
 
+
 @csrf_exempt
 def uninstall(request):
     uninstall_data = json.loads(request.body)
     shop = uninstall_data.get("domain")
-    Shop.objects.filter(shopify_domain = shop).delete()
-    return HttpResponse(status = 204)
+    Shop.objects.filter(shopify_domain=shop).delete()
+    return HttpResponse(status=204)
 
-
-# callback helper methods
-
-def after_authenticate_jobs(shop, access_token):
-    create_uninstall_webhook(shop, access_token)
-
-def create_uninstall_webhook(shop, access_token):
-    with shopify_session(shop, access_token):
-        app_url = apps.get_app_config("shopify_app").APP_URL
-        webhook = shopify.Webhook()
-        webhook.topic = "app/uninstalled"
-        webhook.address = "https://{host}/uninstall".format(host = app_url)
-        webhook.format = "json"
-        webhook.save()
-
-
-def shopify_session(shopify_domain, access_token):
-    api_version = apps.get_app_config("shopify_app").SHOPIFY_API_VERSION
-
-    return shopify.Session.temp(shopify_domain, api_version, access_token)
 
 # Login helper methods
 
@@ -128,7 +108,9 @@ def get_configured_scopes():
 def build_redirect_uri():
     app_url = apps.get_app_config("shopify_app").APP_URL
     callback_path = reverse("callback")
-    return "https://{app_url}{callback_path}".format(app_url=app_url, callback_path=callback_path)
+    return "https://{app_url}{callback_path}".format(
+        app_url=app_url, callback_path=callback_path
+    )
 
 
 def build_state_param():
@@ -140,8 +122,7 @@ def store_state_param(request, state):
 
 
 def _new_session(shop_url):
-    shopify_api_version = apps.get_app_config(
-        "shopify_app").SHOPIFY_API_VERSION
+    shopify_api_version = apps.get_app_config("shopify_app").SHOPIFY_API_VERSION
     shopify_api_key = apps.get_app_config("shopify_app").SHOPIFY_API_KEY
     shopify_api_secret = apps.get_app_config("shopify_app").SHOPIFY_API_SECRET
 
@@ -152,26 +133,17 @@ def _new_session(shop_url):
 # Callback helper methods
 
 
+def validate_params(request, params):
+    validate_state_param(request, params.get("state"))
+    if not shopify.Session.validate_params(params):  # Validates HMAC
+        raise ValueError("Invalid callback parameters")
+
+
 def validate_state_param(request, state):
     if request.session.get("shopify_oauth_state_param") != state:
-        raise ValueError('Anti-forgery state parameter does not match')
+        raise ValueError("Anti-forgery state parameter does not match")
 
     request.session.pop("shopify_oauth_state_param", None)
-
-
-def validate_hmac_param(params):
-    hmac = params.pop("hmac")
-    reconstructed_hmac = build_hmac(params)
-
-    if not hmac_utils.compare_digest(reconstructed_hmac.hexdigest(), hmac):
-        raise ValueError("Anti-forgery hmac parameter does not match")
-
-
-def build_hmac(params):
-    api_secret = apps.get_app_config("shopify_app").SHOPIFY_API_SECRET
-    _params = "&".join(["%s=%s" % (k, v) for k, v in sorted(params.items())])
-
-    return hmac_utils.new(api_secret.encode("utf-8"), _params.encode("utf-8"), hashlib.sha256)
 
 
 def exchange_code_for_access_token(request, shop):
@@ -191,3 +163,26 @@ def store_access_token_and_shop_record(access_token, shop):
 def build_callback_redirect_uri(request, params):
     base = request.session.get("return_to", reverse("root_path"))
     return "{base}?shop={shop}".format(base=base, shop=params.get("shop"))
+
+
+# callback after_authenticate_jobs helper methods
+
+
+def after_authenticate_jobs(shop, access_token):
+    create_uninstall_webhook(shop, access_token)
+
+
+def create_uninstall_webhook(shop, access_token):
+    with shopify_session(shop, access_token):
+        app_url = apps.get_app_config("shopify_app").APP_URL
+        webhook = shopify.Webhook()
+        webhook.topic = "app/uninstalled"
+        webhook.address = "https://{host}/uninstall".format(host=app_url)
+        webhook.format = "json"
+        webhook.save()
+
+
+def shopify_session(shopify_domain, access_token):
+    api_version = apps.get_app_config("shopify_app").SHOPIFY_API_VERSION
+
+    return shopify.Session.temp(shopify_domain, api_version, access_token)
