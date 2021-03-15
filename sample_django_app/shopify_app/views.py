@@ -6,6 +6,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.apps import apps
 from .models import Shop
+from shopify.utils import sanitize_shop_domain
 
 import binascii
 import json
@@ -73,21 +74,12 @@ def authenticate(request):
 
 
 def get_sanitized_shop_param(request):
-    shop = get_shop_param(request)
-    validate_shop_param(shop)
-    return shop
-
-
-def get_shop_param(request):
-    shop = request.GET.get("shop", request.POST.get("shop")).strip()
-    if not shop:
-        raise ValueError("Shop parameter is required")
-    return shop
-
-
-def validate_shop_param(shop):
-    if not SHOP_DOMAIN_RE.match(shop):
+    sanitized_shop_domain = sanitize_shop_domain(
+        request.GET.get("shop", request.POST.get("shop"))
+    )
+    if not sanitized_shop_domain:
         raise ValueError("Shop must match 'example.myshopify.com'")
+    return sanitized_shop_domain
 
 
 def build_auth_params(request):
