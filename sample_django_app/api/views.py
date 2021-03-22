@@ -1,16 +1,16 @@
 from django.http import JsonResponse
-from shopify_app.decorators import with_session_token
+from shopify_app.decorators import session_token_required
 
 import shopify
 
 
-@with_session_token
+@session_token_required
 def products(request):
     products = shopify.Product.find()
 
     return JsonResponse({'products': [p.to_dict() for p in products]})
 
-@with_session_token
+@session_token_required
 def orders(request):
     orders = shopify.Order.find(status='any')
 

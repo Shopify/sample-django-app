@@ -6,7 +6,7 @@ from shopify_app.models import Shop
 
 HTTP_AUTHORIZATION_HEADER= 'HTTP_AUTHORIZATION'
 
-def with_session_token(func):
+def session_token_required(func):
     def wrapper(*args, **kwargs):
         try:
             decoded_session_token = session_token.decode_from_header(
