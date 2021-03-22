@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.urls import reverse
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.apps import apps
@@ -13,10 +13,6 @@ import json
 import os
 import re
 import shopify
-
-HOSTNAME_PATTERN = r"[a-z0-9][a-z0-9-]*[a-z0-9]"
-# Does not include https://
-SHOP_DOMAIN_RE = re.compile(fr"^{HOSTNAME_PATTERN}\.myshopify\.com$")
 
 
 class LoginView(View):
