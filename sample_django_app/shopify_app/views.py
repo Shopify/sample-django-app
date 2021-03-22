@@ -6,7 +6,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.apps import apps
 from .models import Shop
-from shopify.utils import sanitize_shop_domain
+from shopify.utils import shop_url
 
 import binascii
 import json
@@ -74,7 +74,7 @@ def authenticate(request):
 
 
 def get_sanitized_shop_param(request):
-    sanitized_shop_domain = sanitize_shop_domain(
+    sanitized_shop_domain = shop_url.sanitize_shop_domain(
         request.GET.get("shop", request.POST.get("shop"))
     )
     if not sanitized_shop_domain:

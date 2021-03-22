@@ -1,7 +1,6 @@
 from django.apps import apps
 from django.http import HttpResponse
-from shopify import Session
-from shopify.utils import SessionTokenUtility
+from shopify import Session, session_token
 from shopify_app.models import Shop
 
 
@@ -10,14 +9,14 @@ HTTP_AUTHORIZATION_HEADER= 'HTTP_AUTHORIZATION'
 def with_session_token(func):
     def wrapper(*args, **kwargs):
         try:
-            session_token = SessionTokenUtility.get_decoded_session_token(
+            decoded_session_token = session_token.decode_from_header(
                 authorization_header = authorization_header(args[0]),
                 api_key = apps.get_app_config("shopify_app").SHOPIFY_API_KEY,
                 secret = apps.get_app_config("shopify_app").SHOPIFY_API_SECRET
             )
-            with shopify_session(session_token):
+            with shopify_session(decoded_session_token):
                 return func(*args, **kwargs)
-        except ValueError: # TODO: Accept custom errors from library
+        except session_token.SessionTokenError:
             return HttpResponse(status=401)
 
     return wrapper
