@@ -1,21 +1,18 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.urls import reverse
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.apps import apps
 from .models import Shop
+from shopify.utils import shop_url
 
 import binascii
 import json
 import os
 import re
 import shopify
-
-HOSTNAME_PATTERN = r"[a-z0-9][a-z0-9-]*[a-z0-9]"
-# Does not include https://
-SHOP_DOMAIN_RE = re.compile(fr"^{HOSTNAME_PATTERN}\.myshopify\.com$")
 
 
 class LoginView(View):
@@ -73,21 +70,12 @@ def authenticate(request):
 
 
 def get_sanitized_shop_param(request):
-    shop = get_shop_param(request)
-    validate_shop_param(shop)
-    return shop
-
-
-def get_shop_param(request):
-    shop = request.GET.get("shop", request.POST.get("shop")).strip()
-    if not shop:
-        raise ValueError("Shop parameter is required")
-    return shop
-
-
-def validate_shop_param(shop):
-    if not SHOP_DOMAIN_RE.match(shop):
+    sanitized_shop_domain = shop_url.sanitize_shop_domain(
+        request.GET.get("shop", request.POST.get("shop"))
+    )
+    if not sanitized_shop_domain:
         raise ValueError("Shop must match 'example.myshopify.com'")
+    return sanitized_shop_domain
 
 
 def build_auth_params(request):
