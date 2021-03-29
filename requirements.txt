@@ -1,6 +1,6 @@
 Django
 djangorestframework
 django-cors-headers
-ShopifyAPI>=8.3.0
+ShopifyAPI>=8.4.0
 python-dotenv
 PyJWT
