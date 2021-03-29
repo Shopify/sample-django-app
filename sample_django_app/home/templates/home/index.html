@@ -16,6 +16,12 @@
         });
         var myTitleBar = TitleBar.create(app, { title: 'Hello' });
         var shopifyAuthenticatedFetch = AppBridgeUtils.authenticatedFetch(app);
+
+        {% if scope_changes_required %}
+        var redirect= actions.Redirect.create(app);
+        redirect.dispatch(actions.Redirect.Action.REMOTE, `${app.localOrigin}/login?shop={{ shop_origin }}`);
+        {% endif %}
+
         function getProducts(){
           shopifyAuthenticatedFetch('/api/products').then(async(res) => {
                 var products = (await res.json())['products'];

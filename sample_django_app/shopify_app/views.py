@@ -135,7 +135,7 @@ def exchange_code_for_access_token(request, shop):
     session = _new_session(shop)
     access_token = session.request_token(request.GET)
     access_scopes = session.access_scopes
-    
+
     return access_token, access_scopes
 
 
