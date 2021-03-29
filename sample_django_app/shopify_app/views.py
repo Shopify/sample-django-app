@@ -33,8 +33,8 @@ def callback(request):
 
     try:
         validate_params(request, params)
-        access_token = exchange_code_for_access_token(request, shop)
-        store_access_token_and_shop_record(access_token, shop)
+        access_token, access_scopes = exchange_code_for_access_token(request, shop)
+        store_shop_information(access_token, access_scopes, shop)
         after_authenticate_jobs(shop, access_token)
     except ValueError as exception:
         messages.error(request, str(exception))
@@ -133,14 +133,16 @@ def validate_state_param(request, state):
 
 def exchange_code_for_access_token(request, shop):
     session = _new_session(shop)
-    return session.request_token(request.GET)
+    access_token = session.request_token(request.GET)
+    access_scopes = session.access_scopes
+    
+    return access_token, access_scopes
 
 
-def store_access_token_and_shop_record(access_token, shop):
+def store_shop_information(access_token, access_scopes, shop):
     shop_record = Shop.objects.get_or_create(shopify_domain=shop)[0]
     shop_record.shopify_token = access_token
-
-    # TODO: store access scopes
+    shop_record.access_scopes = access_scopes
 
     shop_record.save()
 
