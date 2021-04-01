@@ -1,8 +1,8 @@
 from django.apps import apps
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.urls import reverse
 from django.shortcuts import redirect
-from shopify import Session, session_token
+from shopify import ApiAccess, Session, session_token
 from shopify_app.models import Shop
 from shopify_app.views import get_sanitized_shop_param
 
@@ -58,3 +58,20 @@ def check_shop_domain(request, kwargs):
 
 def check_shop_known(request, kwargs):
     kwargs["shop"] = Shop.objects.get(shopify_domain=kwargs.get("shopify_domain"))
+
+
+def latest_access_scopes_required(func):
+    def wrapper(*args, **kwargs):
+        shop = kwargs.get("shop")
+
+        try:
+            configured_access_scopes = apps.get_app_config("shopify_app").SHOPIFY_API_SCOPES
+            current_access_scopes = shop.access_scopes
+
+            assert ApiAccess(configured_access_scopes) == ApiAccess(current_access_scopes)
+        except:
+            kwargs["scope_changes_required"] = True
+
+        return func(*args, **kwargs)
+
+    return wrapper
