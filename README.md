@@ -46,10 +46,10 @@ $ ngrok http 8000
 $ python manage.py runserver
 ```
 
-6. Create an `APP_URL` environment variable based on the URL ngrok gives you. This is used in the `CSRF_TRUSTED_ORIGINS` and `ALLOWED_HOSTS` section of `settings.py`.
+6. Create an `APP_URL` environment variable based on the URL ngrok gives you. This is used in the `CSRF_TRUSTED_ORIGINS` and `ALLOWED_HOSTS` section of `settings.py`. Do not include a schema (http:// or https://) in this variable.
 
 ```ini
-export APP_URL=<https://ngrok-url.ngrok.io>
+export APP_URL=<ngrok-url.ngrok.io>
 ```
 
 7. From the Partner dashboard, update the "App URL" and "Allowed redirection URL(s)" to include the callback URL:
