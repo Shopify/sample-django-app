@@ -29,10 +29,19 @@ SECRET_KEY = '=y4jnr$*8&jo2$ako6zea2uxar&*re%)otb3@d@=12ao1ca5=o'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# The values in here MUST NOT start with a schema (http://, https://, etc.)
 ALLOWED_HOSTS = [
-    os.getenv('APP_URL')
+    os.getenv('APP_URL'),
 ]
 
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+
+# As of Django 4.0, the values in the CSRF_TRUSTED_ORIGINS setting must start with a scheme.
+# The values in here MUST start with a schema (http://, https://, etc.)
+CSRF_TRUSTED_ORIGINS = [
+    "https://" + os.getenv('APP_URL'),
+]
 
 # Application definition
 
